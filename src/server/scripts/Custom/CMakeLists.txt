@@ -12,9 +12,9 @@
 
 set(scripts_STAT_SRCS
   ${scripts_STAT_SRCS}
-
-	Custom/ArenaSpectator/arena_spectator.cpp
-	Custom/Custom_Rates.cpp
+#  ${sources_Custom}
+# Path to files
+# 1
 	Custom/Congrats_on_Level.cpp
 # 2
 # 3

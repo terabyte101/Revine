@@ -909,20 +909,12 @@ Player::Player(WorldSession* session): Unit(true)
     m_MonthlyQuestChanged = false;
 
     m_SeasonalQuestChanged = false;
-	
-	 // Arena Spectator
-	spectatorFlag = false;
-	spectateCanceled = false;
-	spectateFrom = NULL;
 
     SetPendingBind(0, 0);
 
     _activeCheats = CHEAT_NONE;
     m_achievementMgr = new AchievementMgr(this);
     m_reputationMgr = new ReputationMgr(this);
-
-    m_CustomXpRate = 1;
-    m_CustomLootRate = 1;
 }
 
 Player::~Player()
@@ -2417,17 +2409,7 @@ bool Player::TeleportToBGEntryPoint()
     ScheduleDelayedOperation(DELAYED_BG_MOUNT_RESTORE);
     ScheduleDelayedOperation(DELAYED_BG_TAXI_RESTORE);
     ScheduleDelayedOperation(DELAYED_BG_GROUP_RESTORE);
-    //return TeleportTo(m_bgData.joinPos);
-    Battleground *oldBg = GetBattleground();
-    bool result = TeleportTo(m_bgData.joinPos);
-
-    if (IsSpectator() && result)
-    {
-        SetSpectate(false);
-        if (oldBg)
-            oldBg->RemoveSpectator(GetGUID());
-    }
-    return result;
+    return TeleportTo(m_bgData.joinPos);
 }
 
 void Player::ProcessDelayedOperations()
@@ -6808,7 +6790,6 @@ void Player::CheckAreaExploreAndOutdoor()
                     XP = uint32(sObjectMgr->GetBaseXP(areaEntry->area_level)*sWorld->getRate(RATE_XP_EXPLORE));
                 }
 
-                XP *= GetCustomXpRate();
                 GiveXP(XP, NULL);
                 SendExplorationExperience(area, XP);
             }
@@ -15253,7 +15234,7 @@ void Player::RewardQuest(Quest const* quest, uint32 reward, Object* questGiver, 
     bool rewarded = (m_RewardedQuests.find(quest_id) != m_RewardedQuests.end());
 
     // Not give XP in case already completed once repeatable quest
-    uint32 XP = rewarded && !quest->IsDFQuest() ? 0 : uint32(quest->XPValue(this)*sWorld->getRate(RATE_XP_QUEST) * GetCustomXpRate());
+    uint32 XP = rewarded && !quest->IsDFQuest() ? 0 : uint32(quest->XPValue(this)*sWorld->getRate(RATE_XP_QUEST));
 
     // handle SPELL_AURA_MOD_XP_QUEST_PCT auras
     Unit::AuraEffectList const& ModXPPctAuras = GetAuraEffectsByType(SPELL_AURA_MOD_XP_QUEST_PCT);
@@ -24164,15 +24145,6 @@ void Player::SetViewpoint(WorldObject* target, bool apply)
 {
     if (apply)
     {
-	    if (target->ToPlayer() == this)
-            return;
-
-        //remove Viewpoint if already have
-        if (IsSpectator() && spectateFrom)
-        {
-            SetViewpoint(spectateFrom, false);
-            spectateFrom = NULL;
-        }
         TC_LOG_DEBUG("maps", "Player::CreateViewpoint: Player %s create seer %u (TypeId: %u).", GetName().c_str(), target->GetEntry(), target->GetTypeId());
 
         if (!AddGuidValue(PLAYER_FARSIGHT, target->GetGUID()))
@@ -24184,20 +24156,11 @@ void Player::SetViewpoint(WorldObject* target, bool apply)
         // farsight dynobj or puppet may be very far away
         UpdateVisibilityOf(target);
 
-        //if (target->isType(TYPEMASK_UNIT) && !GetVehicle())
-            //((Unit*)target)->AddPlayerToVision(this);
-		if (target->isType(TYPEMASK_UNIT) && !GetVehicle())
-		{
-			if (IsSpectator())
-				spectateFrom = (Unit*)target;
-
-			((Unit*)target)->AddPlayerToVision(this);
-		}        
-	}
+        if (target->isType(TYPEMASK_UNIT) && !GetVehicle())
+            ((Unit*)target)->AddPlayerToVision(this);
+    }
     else
     {
-	    if (IsSpectator() && !spectateFrom)
-            return;
         TC_LOG_DEBUG("maps", "Player::CreateViewpoint: Player %s remove seer", GetName().c_str());
 
         if (!RemoveGuidValue(PLAYER_FARSIGHT, target->GetGUID()))
@@ -24211,9 +24174,6 @@ void Player::SetViewpoint(WorldObject* target, bool apply)
 
         //must immediately set seer back otherwise may crash
         m_seer = this;
-		
-		if (IsSpectator())
-            spectateFrom = NULL;
 
         //WorldPacket data(SMSG_CLEAR_FAR_SIGHT_IMMEDIATE, 0);
         //GetSession()->SendPacket(&data);
@@ -26668,89 +26628,4 @@ void Player::RemoveRestFlag(RestFlag restFlag)
         _restTime = 0;
         RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING);
     }
-}
-
-void Player::SetSelection(ObjectGuid guid)
-{
-    uint32 m_curSelection = guid;
-    SetUInt64Value(UNIT_FIELD_TARGET, guid);
-}
-
-void Player::SetSpectate(bool on)
-{
-    if (on)
-    {
-        SetSpeed(MOVE_RUN, 5.0);
-        spectatorFlag = true;
-
-        m_ExtraFlags |= PLAYER_EXTRA_GM_ON;
-        setFaction(35);
-
-        if (Pet* pet = GetPet())
-        {
-            RemovePet(pet, PET_SAVE_AS_CURRENT);
-        }
-        UnsummonPetTemporaryIfAny();
-
-        RemoveByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
-        ResetContestedPvP();
-
-        getHostileRefManager().setOnlineOfflineState(false);
-        CombatStopWithPets();
-
-        m_serverSideVisibility.SetValue(SERVERSIDE_VISIBILITY_GM, SEC_ADMINISTRATOR);
-    }
-    else
-    {
-        uint32 newPhase = 0;
-        AuraEffectList const& phases = GetAuraEffectsByType(SPELL_AURA_PHASE);
-        if (!phases.empty())
-            for (AuraEffectList::const_iterator itr = phases.begin(); itr != phases.end(); ++itr)
-                newPhase |= (*itr)->GetMiscValue();
-
-        if (!newPhase)
-            newPhase = PHASEMASK_NORMAL;
-
-        SetPhaseMask(newPhase, false);
-
-        m_ExtraFlags &= ~ PLAYER_EXTRA_GM_ON;
-        setFactionForRace(getRace());
-        RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_GM);
-        RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_ALLOW_CHEAT_SPELLS);
-
-        if (spectateFrom)
-            SetViewpoint(spectateFrom, false);
-
-        // restore FFA PvP Server state
-        if (sWorld->IsFFAPvPRealm())
-            SetByteFlag(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_FFA_PVP);
-
-        // restore FFA PvP area state, remove not allowed for GM mounts
-        UpdateArea(m_areaUpdateId);
-
-        getHostileRefManager().setOnlineOfflineState(true);
-        m_serverSideVisibility.SetValue(SERVERSIDE_VISIBILITY_GM, SEC_PLAYER);
-        spectateCanceled = false;
-        spectatorFlag = false;
-        RestoreDisplayId();
-        UpdateSpeed(MOVE_RUN, true);
-    }
-    UpdateObjectVisibility();
-}
-
-bool Player::HaveSpectators()
-{
-    if (IsSpectator())
-        return false;
-
-    if (Battleground *bg = GetBattleground())
-        if (bg->isArena())
-        {
-            if (bg->GetStatus() != STATUS_IN_PROGRESS)
-                return false;
-
-            return bg->HaveSpectators();
-        }
-
-        return false;
 }
