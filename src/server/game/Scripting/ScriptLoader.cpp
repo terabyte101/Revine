@@ -39,6 +39,7 @@ void AddSC_SmartScripts();
 
 //Custom scripts
 void AddSC_npc_teleport();
+void AddSC_Custom_Rates();
 void AddSC_custom_CongratsOnLevel();
 
 //Commands
@@ -1425,6 +1426,7 @@ void AddBattlegroundScripts()
 
 #ifdef SCRIPTS
 /* This is where custom scripts' loading functions should be declared. */
+void AddSC_arena_spectator_script();
 
 // 1
 // 2
@@ -1472,8 +1474,10 @@ void AddCustomScripts()
 {
 #ifdef SCRIPTS
     /* This is where custom scripts should be added. */
+	AddSC_arena_spectator_script();
 
     AddSC_npc_teleport();
+	AddSC_Custom_Rates();
 	AddSC_custom_CongratsOnLevel();
     // 4
     // 5
