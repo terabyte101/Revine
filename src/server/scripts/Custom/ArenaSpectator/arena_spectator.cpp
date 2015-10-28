@@ -303,7 +303,7 @@ public:
 					continue;
 
 				uint32 tmpID = bGround->GetPlayerTeam(tmpPlayer->GetGUID());
-
+/*
 				// generate addon massage
 				std::string pName = tmpPlayer->GetName();
 				std::string tName = "";
@@ -325,6 +325,7 @@ public:
 				msg.SetPowerType(powerType);
 				msg.SetTeam(tmpID);
 				msg.SendPacket(player->GetGUID());
+*/
 			}
 
 		return true;
