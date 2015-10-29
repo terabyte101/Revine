@@ -1,0 +1,1 @@
+cat *.sql  > all_files.sql

@@ -1,7 +1,7 @@
 #include "ScriptMgr.h"
 #include "Chat.h"
 #include "Language.h"
-#include "player.h"
+#include "Player.h"
 
 class CustomRates
 {
@@ -123,19 +123,17 @@ public:
 	{
 	}
 
-	ChatCommand *GetCommands() const
+	std::vector<ChatCommand> GetCommands() const
 	{
-		static ChatCommand rateCommandTable[] =
+		static std::vector<ChatCommand> rateCommandTable =
 		{
-			{ "xp", SEC_PLAYER, false, &HandleRateXpCommand, "", NULL },
-			{ "loot", SEC_PLAYER, false, &HandleRateLootCommand, "", NULL },
-            { NULL, SEC_PLAYER, false, NULL, "", NULL }
+			{ "xp", SEC_PLAYER, false, &HandleRateXpCommand, "" },
+			{ "loot", SEC_PLAYER, false, &HandleRateLootCommand, "" },
 		};
 
-		static ChatCommand commandTable[] =
+		static std::vector<ChatCommand> commandTable =
 		{
 			{ "rate", SEC_PLAYER, false, NULL, "", rateCommandTable },
-			{ NULL, SEC_PLAYER, false, NULL, "", NULL }
 		};
 
 		return commandTable;

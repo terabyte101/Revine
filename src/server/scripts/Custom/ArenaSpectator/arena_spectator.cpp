@@ -331,21 +331,19 @@ public:
 		return true;
 	}
 
-	ChatCommand* GetCommands() const
+	std::vector<ChatCommand> GetCommands() const
 	{
-		static ChatCommand spectateCommandTable[] =
+		static std::vector<ChatCommand> spectateCommandTable =
 		{
-			{ "player", rbac::RBAC_PERM_COMMAND_SPECTATE_PLAYER, true, &HandleSpectateCommand, "", NULL },
-			{ "view", rbac::RBAC_PERM_COMMAND_SPECTATE_VIEW, true, &HandleSpectateFromCommand, "", NULL },
-			{ "reset", rbac::RBAC_PERM_COMMAND_SPECTATE_RESET, true, &HandleSpectateResetCommand, "", NULL },
-			{ "leave", rbac::RBAC_PERM_COMMAND_SPECTATE_LEAVE, true, &HandleSpectateCancelCommand, "", NULL },
-			{ NULL, 0, false, NULL, "", NULL }
+			{ "player", rbac::RBAC_PERM_COMMAND_SPECTATE_PLAYER, true, &HandleSpectateCommand, "" },
+			{ "view", rbac::RBAC_PERM_COMMAND_SPECTATE_VIEW, true, &HandleSpectateFromCommand, "" },
+			{ "reset", rbac::RBAC_PERM_COMMAND_SPECTATE_RESET, true, &HandleSpectateResetCommand, "" },
+			{ "leave", rbac::RBAC_PERM_COMMAND_SPECTATE_LEAVE, true, &HandleSpectateCancelCommand, "" },
 		};
 
-		static ChatCommand commandTable[] =
+		static std::vector<ChatCommand> commandTable =
 		{
 			{ "spectate", rbac::RBAC_PERM_COMMAND_SPECTATE, false, NULL, "", spectateCommandTable },
-			{ NULL, 0, false, NULL, "", NULL }
 		};
 		return commandTable;
 	}
